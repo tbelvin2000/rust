@@ -1,3 +1,3 @@
-def struct Node() {
+def struct Node {
     
 }
