@@ -1,3 +1,5 @@
+mod bst;
+
 struct Point {
     x: i32,
     y: i32,
@@ -11,3 +13,4 @@ fn main() {
     let p = Point{y, x};
     println!("Point is {}, {}", p.x, p.y);
 }
+
