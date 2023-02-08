@@ -10,17 +10,27 @@ impl<'a> Node<'a> {
     // Search tree rooted at self for target node
     // Return reference to Node or none
     fn find(&self, target: u32) -> Option<&Node> {
-        todo!("find method")
+        match target {
+            x if x == self.key => Some(&self),
+            x if x < self.key => match self.left_child {
+                None => None,
+                Some(lc) => lc.find(target),
+            },
+            x if x > self.key => match self.right_child {
+                None => None,
+                Some(rc) => rc.find(target),
+            }
+            _ => panic!("x is somehow not related to self.key")
+        }
     }
     // Insert node with key in tree rooted at self
     // Return true if inserted, false if key is already in tree
-    fn insert(&mut self, key: u32) -> bool{
+    fn insert(&mut self, key: u32) -> bool {
         todo!("Insert method")
     }
     // Delete target node from tree rooted at self
     // Return true if deleted, false if key is not in tree
-    fn delete(&mut self, target: u32) -> bool{
+    fn delete(&mut self, target: u32) -> bool {
         todo!("Delete method")
     }
 }
-
