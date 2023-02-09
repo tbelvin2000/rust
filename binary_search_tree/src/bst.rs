@@ -24,9 +24,19 @@ impl<'a> Node<'a> {
         }
     }
     // Insert node with key in tree rooted at self
-    // Return true if inserted, false if key is already in tree
+    // Return inserted Node if inserted, None if key is already in tree
     fn insert(&mut self, key: u32) -> bool {
-        todo!("Insert method")
+        match key {
+            x if x == self.key => false,
+            x if x < self.key => match self.left_child{
+                None => {
+                    let n:Node<'a> = Node{key, left_child:None, right_child:None};
+                    self.left_child = Some(&n);
+                    return true
+                }
+                Some(lc) => lc.insert(key)
+            }
+        }
     }
     // Delete target node from tree rooted at self
     // Return true if deleted, false if key is not in tree
