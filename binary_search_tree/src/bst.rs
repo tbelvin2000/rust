@@ -86,38 +86,45 @@ impl Node {
                         // Successor is targets right child
                         None => {
                             let succ = Some(Box::new(Node{key: parent.key, left_child: target.left_child, right_child: parent.right_child}));
-                            parent.delete(parent.key);
-                            return succ;
-                        }
+                            target.delete(parent.key);
+                            succ
+                        },
                         // Successor is leftmost descendent
                         Some(lc) => {
                             /* Find leftmost descendent then build and return successor */
+                            let delkey: u32;
                             loop {
                                 parent = lc.as_mut();
+                                // Is there a more succinct way of doing this?
                                 match parent.left_child {
-                                    
+                                    None => panic!("Moved past successor"),
+                                    Some(lc) => {
+                                        match lc.left_child {
+                                            // Successor is lc
+                                            None => {
+                                                let succ = Some(Box::new(Node{key: lc.key, left_child: target.left_child, right_child: parent.right_child}));
+                                                target.delete(lc.key);
+                                                return succ;
+                                            },
+                                            // Go left MORE!!
+                                            Some(lc) => {
+                                                parent = lc.as_mut();
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-                    let key = succ.key;
-                    let left_child = target.left_child;
-                    let right_child = if target.right_child.unwrap().as_ref().key != key {
-                        target.right_child
-                    } else {
-                        succ.right_child
-                    };
-                    parent.delete(key);
-                    Some(Box::new(Node {
-                        key,
-                        left_child,
-                        right_child,
-                    }))
                 }
             }
         }
+
         match target {
+            // Deleteing root, how to get node??
+            // I think I need  a successor for root delets specifically -.-
             x if x == self.key => successor(self),
+            x if x < self.key => 
         }
     }
 }
