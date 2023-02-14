@@ -1,130 +1,90 @@
+use std::cmp::Ordering;
+
+#[derive(Default)]
+struct Tree {
+    root: Option<Box<Node>>,
+}
 struct Node {
     key: u32,
-    left_child: Option<Box<Node>>,
-    right_child: Option<Box<Node>>,
+    left_sub: Tree,
+    right_sub: Tree,
 }
 // Lifetimes are saying that struct Node will have Option pointers to nodes with at maximum
 //     the same lifetime as itself. Is there a way to specify they will have a lesser lifespan?
-
-impl Default for Node {
-    // Should only be used to with a passed key value
-    fn default() -> Self {
-        Node {
-            key: 0,
-            left_child: None,
-            right_child: None,
+impl Node {
+    // Find successor to self
+    // Returns: Pointer to successor Node or None
+    fn successor(&mut self) -> Option<&mut Box<Node>> {
+        let mut succ;
+        let mut mv: u32 = 0;
+        let mut two_child = false;
+        match (matches!(self.left_sub.root, None), matches!(self.right_sub.root, None)) {
+            // Self is leaf node
+            (true, true) => return None,
+            // Self has left descendents only
+            (false, true) => return self.left_sub.root.as_mut(),
+            // Self has right descendents only
+            (true, false) => return self.right_sub.root.as_mut(),
+            // Self has both descendents
+            (false, false) => {
+                succ = self.right_sub.root.as_mut().unwrap();
+                let mut mv: u32 = 0;
+                two_child = true;
+                while !matches!(succ.left_sub.root, None) {
+                    succ = succ.left_sub.root.as_mut().unwrap();
+                    mv += 1;
+                }
+            },
         }
+        // How to get inorder successor??
+        if two_child { 
+            let left_sub = self.left_sub.root.unwrap();
+            succ.left_sub = Tree{root: Some(left_sub)};
+            if mv != 0 {
+                succ.right_sub = self.right_sub;
+            }
+        }
+        Some(succ)
     }
 }
 
-impl Node {
-    // Search tree rooted at self for target node
-    // Return reference to Node or none
-    fn find(&self, target: u32) -> Option<&Node> {
-        match target {
-            x if x == self.key => Some(self),
-            x if x < self.key => match &self.left_child {
-                None => None,
-                Some(lc) => lc.find(target),
-            },
-            x if x > self.key => match &self.right_child {
-                None => None,
-                Some(rc) => rc.find(target),
-            },
-            _ => panic!("x is somehow not related to self.key"),
-        }
-    }
-    // Insert node with key in tree rooted at self
-    // Return inserted Node if inserted, None if key is already in tree
+impl Tree {
+    // Insert node with key into tree
+    // Returns: true if successfully inserted, false if node with key exists
     fn insert(&mut self, key: u32) -> bool {
-        match key {
-            // Key already exists in tree
-            x if x == self.key => false,
-            x if x < self.key => match &mut self.left_child {
-                // Key is left child of current node
-                None => {
-                    self.left_child = Some(Box::new(Node {
-                        key,
-                        ..Default::default()
-                    }));
-                    true
-                }
-                // Key is left descendent of current node
-                Some(lc) => lc.insert(key),
+        match &mut self.root {
+            None => {
+                self.root = Some(Box::new(Node {
+                    key,
+                    left_sub: Tree::default(),
+                    right_sub: Tree::default(),
+                }));
+                true
+            }
+            Some(rt) => match key.cmp(&rt.key) {
+                Ordering::Equal => false,
+                Ordering::Less => rt.left_sub.insert(key),
+                Ordering::Greater => rt.right_sub.insert(key),
             },
-            x if x > self.key => match &mut self.right_child {
-                // Key is right child of current node
-                None => {
-                    self.right_child = Some(Box::new(Node {
-                        key,
-                        ..Default::default()
-                    }));
-                    true
-                }
-                // Key is right descendent of current node
-                Some(rc) => rc.insert(key),
-            },
-            _ => panic!("x is sommehow not related to self.key"),
         }
     }
-    // Delete target node from tree rooted at self
-    // Return true if deleted, false if key is not in tree
-    fn delete(&mut self, target: u32) -> Node {
-        fn successor(target: &mut Node) -> Option<Box<Node>> {
-            match (target.left_child, target.right_child) {
-                // Target is leaf
-                (None, None) => None,
-                // Target has only left child
-                (lc, None) => lc,
-                // Target has only right child
-                (None, rc) => rc,
-                // Target has both children; Find in order successor
-                // Just use parent and look at child, that way there is only one pointer
-                (lc, Some(rc)) => {
-                    let mut parent = rc.as_mut();
-                    match parent.left_child {
-                        // Successor is targets right child
-                        None => {
-                            let succ = Some(Box::new(Node{key: parent.key, left_child: target.left_child, right_child: parent.right_child}));
-                            target.delete(parent.key);
-                            succ
-                        },
-                        // Successor is leftmost descendent
-                        Some(lc) => {
-                            /* Find leftmost descendent then build and return successor */
-                            let delkey: u32;
-                            loop {
-                                parent = lc.as_mut();
-                                // Is there a more succinct way of doing this?
-                                match parent.left_child {
-                                    None => panic!("Moved past successor"),
-                                    Some(lc) => {
-                                        match lc.left_child {
-                                            // Successor is lc
-                                            None => {
-                                                let succ = Some(Box::new(Node{key: lc.key, left_child: target.left_child, right_child: parent.right_child}));
-                                                target.delete(lc.key);
-                                                return succ;
-                                            },
-                                            // Go left MORE!!
-                                            Some(lc) => {
-                                                parent = lc.as_mut();
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+    fn delete(&mut self, key: u32) -> bool {
+        match &mut self.root {
+            None => false,
+            Some(rt) => match key.cmp(&rt.key) {
+                Ordering::Equal => match rt.successor() {
+                    None => {
+                        self.root = None;
+                        true
                     }
-                }
-            }
-        }
-
-        match target {
-            // Deleteing root, how to get node??
-            // I think I need  a successor for root delets specifically -.-
-            x if x == self.key => successor(self),
-            x if x < self.key => 
+                    Some(succ) => {
+                        rt = succ;
+                        true
+                    }
+                },
+                Ordering::Less => rt.left_sub.delete(key),
+                Ordering::Greater => rt.right_sub.delete(key),
+            },
         }
     }
 }
