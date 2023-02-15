@@ -76,7 +76,8 @@ impl Tree {
                         Ordering::Less => search_recursive(
                             &mut current.root.as_mut().unwrap().left_sub, 
                             key, 
-                            vec),
+                            vec
+                        ),
                     }
                 }
             }
