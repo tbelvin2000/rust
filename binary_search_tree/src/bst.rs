@@ -38,38 +38,43 @@ impl Tree {
     fn delete(&mut self, key: u32) -> bool {
         if self.root.is_some() {
             let current = self;
+            // Compare key with current node key
             match key.cmp(&current.root.as_ref().unwrap().key) {
+                // Deleting current node
                 Ordering::Equal => {
                     match (current.root.as_ref().unwrap().left_sub.root.is_some(),current.root.as_ref().unwrap().right_sub.root.is_some(),) {
                         // Self is leaf node
                         (false, false) => {
                             current.root = None;
-                            true
                         }
                         // Self has left descendents only
                         (true, false) => {
                             current.root = current.root.take().unwrap().left_sub.root;
-                            true
                         }
                         // Self has right descendents only
                         (false, true) => {
                             current.root = current.root.take().unwrap().right_sub.root;
-                            true
                         }
                         // Self has both descendents
                         (true, true) => {
+                            // Find in-order successor
                             let mut successor = &mut current.root.as_mut().unwrap().right_sub;
                             while successor.root.as_ref().unwrap().left_sub.root.is_some() {
                                 successor = &mut successor.root.as_mut().unwrap().left_sub;
                             }
+                            // Save successor key
                             let suc_key = successor.root.as_ref().unwrap().key;
+                            // Remove in order successor (use take to avoid double borrow)
                             successor.root = successor.root.take().unwrap().right_sub.root;
+                            // Set current node key to in-order successor key
                             current.root.as_mut().unwrap().key = suc_key;
-                            true
                         }
                     }
+                    true
                 }
+                // Target Node may be in left subtree
                 Ordering::Less => current.root.as_mut().unwrap().left_sub.delete(key),
+                // Target Node may be in right subtree
                 Ordering::Greater => current.root.as_mut().unwrap().right_sub.delete(key),
             }
         } else {
