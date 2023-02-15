@@ -52,6 +52,48 @@ impl Tree {
         }
     }
 
+    // Delete node with key in tree
+    // Returns: true if successfull, else false
+    pub fn delete(&mut self, key: u32) -> bool {
+        match self.root.is_some() {
+            // Empty tree
+            false => false,
+            true => {
+                let current = self;
+                match key.cmp(&current.root.as_ref().unwrap().key) {
+                    // Delete current node
+                    Ordering::Equal => {
+                        match (
+                            current.root.as_ref().unwrap().left_sub.root.is_some(),
+                            current.root.as_ref().unwrap().right_sub.root.is_some(),
+                        ) {
+                            // Current is leaf
+                            (false, false) => current.root = None,
+                            // Current has only left descendents
+                            (true, false) => current.root = current.root.take().unwrap().left_sub.root,
+                            // Current has only right descendents
+                            (false, true) => current.root = current.root.take().unwrap().right_sub.root,
+                            // Current has both descendents
+                            (true, true) => 
+                                current.root.as_mut().unwrap().key = current
+                                    .root
+                                    .as_mut()
+                                    .unwrap()
+                                    .right_sub
+                                    .extract_min()
+                                    .unwrap(),
+                        }
+                        true
+                    },
+                    // Target may be in left subtree
+                    Ordering::Less => current.root.as_mut().unwrap().left_sub.delete(key),
+                    // Target may be in right subtree
+                    Ordering::Greater => current.root.as_mut().unwrap().right_sub.delete(key),
+                }
+            }
+        }
+    }
+
     // Find key in self
     // Returns Vec of nodes visited to find key
     // Returns empty Vec if key was not found
@@ -180,47 +222,5 @@ impl Tree {
             current.root = current.root.take().unwrap().left_sub.root;
         }
         ret
-    }
-
-    // Delete node with key in tree
-    // Returns: true if successfull, else false
-    pub fn delete(&mut self, key: u32) -> bool {
-        match self.root.is_some() {
-            // Empty tree
-            false => false,
-            true => {
-                let current = self;
-                match key.cmp(&current.root.as_ref().unwrap().key) {
-                    // Delete current node
-                    Ordering::Equal => {
-                        match (
-                            current.root.as_ref().unwrap().left_sub.root.is_some(),
-                            current.root.as_ref().unwrap().right_sub.root.is_some(),
-                        ) {
-                            // Current is leaf
-                            (false, false) => current.root = None,
-                            // Current has only left descendents
-                            (true, false) => current.root = current.root.take().unwrap().left_sub.root,
-                            // Current has only right descendents
-                            (false, true) => current.root = current.root.take().unwrap().right_sub.root,
-                            // Current has both descendents
-                            (true, true) => 
-                                current.root.as_mut().unwrap().key = current
-                                    .root
-                                    .as_mut()
-                                    .unwrap()
-                                    .right_sub
-                                    .extract_min()
-                                    .unwrap(),
-                        }
-                        true
-                    },
-                    // Target may be in left subtree
-                    Ordering::Less => current.root.as_mut().unwrap().left_sub.delete(key),
-                    // Target may be in right subtree
-                    Ordering::Greater => current.root.as_mut().unwrap().right_sub.delete(key),
-                }
-            }
-        }
     }
 }
