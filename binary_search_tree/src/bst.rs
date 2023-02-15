@@ -1,5 +1,9 @@
 use std::cmp::Ordering;
-struct Tree(Option<Box<Node>>);
+
+#[derive(Default)]
+struct Tree {
+    root: Option<Box<Node>>,
+}
 struct Node {
     key: u32,
     left_sub: Tree,
@@ -8,76 +12,69 @@ struct Node {
 // Lifetimes are saying that struct Node will have Option pointers to nodes with at maximum
 //     the same lifetime as itself. Is there a way to specify they will have a lesser lifespan?
 
-impl Node {
-    fn new(key: u32) -> Node {
-        Node {
-            key,
-            left_sub: Tree(None),
-            right_sub: Tree(None),
-        }
-    }
-}
-
 impl Tree {
+    // Insert node with key into tree
+    // Returns: true if successfully inserted, false if node with key exists
     fn insert(&mut self, key: u32) -> bool {
-        match self.0.is_some() {
-            false => {
-                self.0 = Some(Box::new(Node::new(key)));
+        match &mut self.root {
+            None => {
+                self.root = Some(Box::new(Node {
+                    key,
+                    left_sub: Tree::default(),
+                    right_sub: Tree::default(),
+                }));
                 true
             }
-            true => {
-                let root = self.0.as_mut().unwrap();
-                match key.cmp(&root.key) {
-                    Ordering::Equal => false,
-                    Ordering::Less => root.left_sub.insert(key),
-                    Ordering::Greater => root.right_sub.insert(key),
-                }
-            }
+            Some(rt) => match key.cmp(&rt.key) {
+                Ordering::Equal => false,
+                Ordering::Less => rt.left_sub.insert(key),
+                Ordering::Greater => rt.right_sub.insert(key),
+            },
         }
     }
-    // Find and remove minimum Node of tree
-    // replace with right child if necessary
-    // Returns key value of min node or None for tree of height 0
-    fn extract_min(&mut self) -> Option<u32> {
-        match self.0.is_some() {
-            false => None,
-            true => {
-                let mut current = self;
-                while current.0.as_mut().unwrap().left_sub.0.is_some() {
-                    current = &mut current.0.as_mut().unwrap().left_sub;
-                }
-                let ret = current.0.as_mut().unwrap().key;
-                current.0 = current.0.take().unwrap().left_sub.0;
-                Some(ret)
-            }
-        }
-    }
-    // Find and remove node with key
-    // replace with successor if necessary
-    // Returns: true on success, false on failure
+    
+    // Delete node with key in tree
+    // Returns: true if successfull, else false
     fn delete(&mut self, key: u32) -> bool {
-        match self.0.is_some() {
-            false => false,
-            true => {
-                let current = self;
-                match key.cmp(&current.0.as_mut().unwrap().key) {
-                    // Delete current
-                    Ordering::Equal => {
-                        match (current.0.as_mut().unwrap().left_sub.0.is_some(), current.0.as_mut().unwrap().right_sub.0.is_some()) {
-                            // current is leaf
-                            (false, false) => current.0 = None,
-                            (true, false) => current.0 = current.0.take().unwrap().left_sub.0,
-                            (false, true) => current.0 = current.0.take().unwrap().right_sub.0,
-                            (true, true) => current.0.as_mut().unwrap().key = current.0.as_mut().unwrap().right_sub.extract_min().unwrap(),
+        if self.root.is_some() {
+            let current = self;
+            match key.cmp(&current.root.as_ref().unwrap().key) {
+                Ordering::Equal => {
+                    match (current.root.as_ref().unwrap().left_sub.root.is_some(),current.root.as_ref().unwrap().right_sub.root.is_some(),) {
+                        // Self is leaf node
+                        (false, false) => {
+                            current.root = None;
+                            true
                         }
-                        true
+                        // Self has left descendents only
+                        (true, false) => {
+                            current.root = current.root.take().unwrap().left_sub.root;
+                            true
+                        }
+                        // Self has right descendents only
+                        (false, true) => {
+                            current.root = current.root.take().unwrap().right_sub.root;
+                            true
+                        }
+                        // Self has both descendents
+                        (true, true) => {
+                            let mut successor = &mut current.root.as_mut().unwrap().right_sub;
+                            while successor.root.as_ref().unwrap().left_sub.root.is_some() {
+                                successor = &mut successor.root.as_mut().unwrap().left_sub;
+                            }
+                            let suc_key = successor.root.as_ref().unwrap().key;
+                            successor.root = successor.root.take().unwrap().right_sub.root;
+                            current.root.as_mut().unwrap().key = suc_key;
+                            true
+                        }
                     }
-                    // Target may be in left descendents
-                    Ordering::Less => current.0.as_mut().unwrap().left_sub.delete(key),
-                    // Target may be in right descendents
-                    Ordering::Greater => current.0.as_mut().unwrap().right_sub.delete(key),
                 }
+                Ordering::Less => current.root.as_mut().unwrap().left_sub.delete(key),
+                Ordering::Greater => current.root.as_mut().unwrap().right_sub.delete(key),
             }
+        } else {
+            false
         }
+        
     }
 }
