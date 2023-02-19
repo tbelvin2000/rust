@@ -1,6 +1,4 @@
-use std::{cmp::Ordering, collections::VecDeque};
-
-#[derive(Default)]
+use std::{cmp::Ordering, collections::VecDeque, default};
 pub struct Tree <T>{
     root: Option<Box<Node<T>>>,
 }
@@ -8,16 +6,24 @@ struct Node <T>{
     key: u32,
     value: T,
     balance: i32,
-    left_sub: Tree,
-    right_sub: Tree,
+    left_sub: Tree <T>,
+    right_sub: Tree <T>,
+}
+
+impl<T> Default for Tree<T> {
+    fn default() -> Tree<T> {
+        Tree {
+            root: None
+        }
+    }
 }
 
 impl<T> Node <T>{
     fn new(key: u32, value: T) -> Node<T>{
-        Node<T> {
+        Node {
             key,
             value,
-            balance: 0;
+            balance: 0,
             left_sub: Tree::default(),
             right_sub: Tree::default(),
         }
@@ -26,7 +32,7 @@ impl<T> Node <T>{
 
 impl<T> Tree <T>{
     // Returns a new tree initiated with no root or Node of key
-    pub fn new(root: Option<u32>) -> Tree<T> {
+    pub fn new(root: Option<(u32, T)>) -> Tree<T> {
         if let Some((key, value)) = root {
             Tree {
                 root: Some(Box::new(Node::new(key, value))),
@@ -44,7 +50,7 @@ impl<T> Tree <T>{
                 self.root = Some(Box::new(Node {
                     key,
                     value,
-                    balance: 0
+                    balance: 0,
                     left_sub: Tree::default(),
                     right_sub: Tree::default(),
                 }));
@@ -53,14 +59,14 @@ impl<T> Tree <T>{
             Some(rt) => match key.cmp(&rt.key) {
                 Ordering::Equal => false,
                 // TODO: Check if balance changed and rotate is required
-                Ordering::Less => if rt.left_sub.insert(key) {
+                Ordering::Less => if rt.left_sub.insert(key, value) {
                     rt.balance -= 1; 
                     // Rotate necessary?
                     true
                 } else {
                     false
                 },
-                Ordering::Greater => if rt.right_sub.insert(key) {
+                Ordering::Greater => if rt.right_sub.insert(key, value) {
                     rt.balance += 1;
                     // Rotate?
                     true
@@ -107,7 +113,7 @@ impl<T> Tree <T>{
                     },
                     // Target may be in left subtree
                     Ordering::Less => if current.root.as_mut().unwrap().left_sub.delete(key) {
-                        current.root.as_mut().balance += 1;
+                        current.root.as_mut().unwrap().balance += 1;
                         // TODO Rotate?
                         true
                     } else {
@@ -115,7 +121,7 @@ impl<T> Tree <T>{
                     },
                     // Target may be in right subtree
                     Ordering::Greater => if current.root.as_mut().unwrap().right_sub.delete(key) {
-                        current.root.as_mut().balance -= 1;
+                        current.root.as_mut().unwrap().balance -= 1;
                         // TODO Rotate?
                         true
                     } else {
@@ -134,7 +140,7 @@ impl<T> Tree <T>{
     pub fn search(&mut self, key: u32) -> Vec<u32> {
         // Loads visited nodes to vec parameter
         // Returns true if key is found else false
-        fn search_recursive(current: &mut Tree, key: u32, vec: &mut Vec<u32>) -> bool {
+        fn search_recursive<T>(current: &mut Tree<T>, key: u32, vec: &mut Vec<u32>) -> bool {
             match current.root.is_some() {
                 false => false,
                 true => {
@@ -200,7 +206,7 @@ impl<T> Tree <T>{
 
     // Return a vector of keys in the ordering a breadth first traversal (left to right)
     pub fn bft(&mut self) -> Vec<u32> {
-        fn bft_rec(vec: &mut Vec<u32>, que: &mut VecDeque<&Node>) {
+        fn bft_rec<T>(vec: &mut Vec<u32>, que: &mut VecDeque<&Node<T>>) {
             if !que.is_empty() {
                 let node = que.pop_front().unwrap();
                 vec.push(node.key);
@@ -215,7 +221,7 @@ impl<T> Tree <T>{
         }
         let mut vec = Vec::new();
         if self.root.is_some() {
-            let mut que: VecDeque<&Node> = VecDeque::new();
+            let mut que: VecDeque<&Node<T>> = VecDeque::new();
             que.push_back(self.root.as_ref().unwrap());
             bft_rec(&mut vec, &mut que);
         }
