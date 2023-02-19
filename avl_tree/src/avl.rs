@@ -186,7 +186,7 @@ impl<T> Tree <T>{
         }
         vec
     }
-
+    
     // Return a vector of keys in-order
     pub fn in_order(&mut self) -> Vec<u32> {
         let mut vec = Vec::new();
