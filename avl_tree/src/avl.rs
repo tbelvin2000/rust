@@ -1,31 +1,35 @@
 use std::{cmp::Ordering, collections::VecDeque};
 
 #[derive(Default)]
-pub struct Tree {
-    root: Option<Box<Node>>,
+pub struct Tree <T>{
+    root: Option<Box<Node<T>>>,
 }
-struct Node {
+struct Node <T>{
     key: u32,
+    value: T,
+    balance: i32,
     left_sub: Tree,
     right_sub: Tree,
 }
 
-impl Node {
-    fn new(key: u32) -> Node {
-        Node {
+impl<T> Node <T>{
+    fn new(key: u32, value: T) -> Node<T>{
+        Node<T> {
             key,
+            value,
+            balance: 0;
             left_sub: Tree::default(),
             right_sub: Tree::default(),
         }
     }
 }
 
-impl Tree {
+impl<T> Tree <T>{
     // Returns a new tree initiated with no root or Node of key
-    pub fn new(root: Option<u32>) -> Tree {
-        if let Some(key) = root {
+    pub fn new(root: Option<u32>) -> Tree<T> {
+        if let Some((key, value)) = root {
             Tree {
-                root: Some(Box::new(Node::new(key))),
+                root: Some(Box::new(Node::new(key, value))),
             }
         } else {
             Tree::default()
@@ -34,11 +38,13 @@ impl Tree {
 
     // Insert node with key into tree
     // Returns: true if successfully inserted, false if node with key exists
-    pub fn insert(&mut self, key: u32) -> bool {
+    pub fn insert(&mut self, key: u32, value: T) -> bool {
         match &mut self.root {
             None => {
                 self.root = Some(Box::new(Node {
                     key,
+                    value,
+                    balance: 0
                     left_sub: Tree::default(),
                     right_sub: Tree::default(),
                 }));
@@ -46,8 +52,21 @@ impl Tree {
             },
             Some(rt) => match key.cmp(&rt.key) {
                 Ordering::Equal => false,
-                Ordering::Less => rt.left_sub.insert(key),
-                Ordering::Greater => rt.right_sub.insert(key),
+                // TODO: Check if balance changed and rotate is required
+                Ordering::Less => if rt.left_sub.insert(key) {
+                    rt.balance -= 1; 
+                    // Rotate necessary?
+                    true
+                } else {
+                    false
+                },
+                Ordering::Greater => if rt.right_sub.insert(key) {
+                    rt.balance += 1;
+                    // Rotate?
+                    true
+                } else {
+                    false
+                },
             },
         }
     }
@@ -62,6 +81,7 @@ impl Tree {
                 let current = self;
                 match key.cmp(&current.root.as_ref().unwrap().key) {
                     // Delete current node
+                    // TODO is it necessary to update balance?
                     Ordering::Equal => {
                         match (
                             current.root.as_ref().unwrap().left_sub.root.is_some(),
@@ -86,13 +106,27 @@ impl Tree {
                         true
                     },
                     // Target may be in left subtree
-                    Ordering::Less => current.root.as_mut().unwrap().left_sub.delete(key),
+                    Ordering::Less => if current.root.as_mut().unwrap().left_sub.delete(key) {
+                        current.root.as_mut().balance += 1;
+                        // TODO Rotate?
+                        true
+                    } else {
+                        false
+                    },
                     // Target may be in right subtree
-                    Ordering::Greater => current.root.as_mut().unwrap().right_sub.delete(key),
+                    Ordering::Greater => if current.root.as_mut().unwrap().right_sub.delete(key) {
+                        current.root.as_mut().balance -= 1;
+                        // TODO Rotate?
+                        true
+                    } else {
+                        false
+                    },
                 }
             }
         }
     }
+
+    // TODO: Add rotations
 
     // Find key in self
     // Returns Vec of nodes visited to find key
