@@ -42,6 +42,108 @@ impl<T> Tree <T>{
         }
     }
 
+    // TODO: Only need to mess new root and old root balance
+    fn left_rotation(&mut self) {
+        // Take current root node
+        let mut current = self.root.take();
+        // Take and hold right child's left child
+        let hold = current.as_mut().unwrap()
+                    .right_sub.root.as_mut().unwrap()
+                    .left_sub.root.take();
+        // Take right child to be new root
+        let mut new_root = current.as_mut().unwrap().right_sub.root.take();
+        // Set current root's right child to held node
+        current.as_mut().unwrap().right_sub.root = hold;
+        // Set new balance conditions for old root and new root
+        match new_root.as_ref().unwrap().balance == 0 {
+            // right sub tree was perfectly balanced
+            true => {
+                // new tree will be perfectly balanced
+                current.as_mut().unwrap().balance = 0;
+                new_root.as_mut().unwrap().balance = 0;
+            },
+            // right sub tree was left leaning
+            false => {
+                // Current root will be right leaning, new root will be left leaning
+                current.as_mut().unwrap().balance = 1;
+                new_root.as_mut().unwrap().balance = -1;
+            }
+        }
+        // Set new root's right child to current node
+        new_root.as_mut().unwrap().right_sub.root = current;
+        // Set self.root to new root
+        self.root = new_root;
+    }
+
+    fn right_rotation(&mut self) {
+        // Take current root node
+        let mut current = self.root.take();
+        // Take and hold left child's right child
+        let hold = current.as_mut().unwrap()
+                    .left_sub.root.as_mut().unwrap()
+                    .right_sub.root.take();
+        // Take left child to be new root
+        let mut new_root = current.as_mut().unwrap().left_sub.root.take();
+        // Set current root nodes left child to held node
+        current.as_mut().unwrap().left_sub.root = hold;
+        // Set new balance conditions for old root and new root
+        match new_root.as_ref().unwrap().balance == 0 {
+            // left sub tree was perfectly balanced
+            true => {
+                // new tree will be perfectly balanced
+                current.as_mut().unwrap().balance = 0;
+                new_root.as_mut().unwrap().balance = 0;
+            },
+            // left sub tree was right leaning
+            false => {
+                // Current root will be left leaning, new root will be right leaning
+                current.as_mut().unwrap().balance = -1;
+                current.as_mut().unwrap().balance = 1;
+            }
+        }
+
+        // Set new root's right child to current node
+        new_root.as_mut().unwrap().right_sub.root = current;
+        // Set self.root to new root
+        self.root = new_root;
+    }
+
+    // Balances tree rooted at self
+    // Returns true if tree was rotated else false
+    fn balance(&mut self) -> bool {
+        let mut bal = self.root.as_ref().unwrap().balance;
+        match bal {
+            // Tree is left heavy
+            b if b < -1 => {
+                // Since bal < -1, root must have a left subtree to unwrap
+                bal = self.root.as_ref().unwrap().left_sub.root.as_ref().unwrap().balance;
+                // Tree is left right heavy
+                if bal > 0 {
+                    self.root.as_mut().unwrap().left_sub.left_rotation();
+                    self.right_rotation();
+                // Tree is left left heavy (and possibly left right heavy)
+                } else {
+                    self.right_rotation();
+                }
+                true
+            },
+            b if b > 1 => {
+                // Since bal > 1, root must have right subtree to unwrap
+                bal = self.root.as_ref().unwrap().right_sub.root.as_ref().unwrap().balance;
+                // Tree is right left heavy
+                if bal < 0 {
+                    self.root.as_mut().unwrap().right_sub.right_rotation();
+                    self.left_rotation();
+                // Tree is right right heavy (and possibly right left heavy)
+                } else {
+                    self.left_rotation();
+                }
+                true
+            },
+            _ => false,
+        }
+    }
+
     // Insert node with key into tree
     // Returns: true if successfully inserted, false if node with key exists
     pub fn insert(&mut self, key: u32, value: T) -> bool {
