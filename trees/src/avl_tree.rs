@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::VecDeque, default};
+use std::{cmp::Ordering, collections::VecDeque};
 pub struct Tree <T>{
     root: Option<Box<Node<T>>>,
 }
